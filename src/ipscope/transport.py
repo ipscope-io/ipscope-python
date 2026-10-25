@@ -12,11 +12,12 @@ Features:
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 import json
 import random
 import time
-from typing import Any, Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
+from dataclasses import dataclass
+from typing import Any
 
 import httpx
 
@@ -137,9 +138,7 @@ class SyncHttpTransport:
         self._base_url = base_url.strip().rstrip("/") or DEFAULT_BASE_URL
         self._timeout_seconds = max(0.1, float(timeout_seconds))
         self._retry = retry or RetryOptions()
-        self._user_agent = (
-            f"{user_agent} {SDK_USER_AGENT}" if user_agent else SDK_USER_AGENT
-        )
+        self._user_agent = f"{user_agent} {SDK_USER_AGENT}" if user_agent else SDK_USER_AGENT
         self._last_rate_limit: RateLimitMetadata | None = None
 
         self._callable_transport: SyncTransportCallable | None = None
@@ -178,9 +177,7 @@ class SyncHttpTransport:
         timeout_seconds: float,
     ) -> RawHttpResponse:
         if self._callable_transport is not None:
-            return self._callable_transport(
-                method, url, headers, body_bytes, timeout_seconds
-            )
+            return self._callable_transport(method, url, headers, body_bytes, timeout_seconds)
 
         assert self._client is not None
         with self._client.stream(
@@ -371,9 +368,7 @@ class AsyncHttpTransport:
         self._base_url = base_url.strip().rstrip("/") or DEFAULT_BASE_URL
         self._timeout_seconds = max(0.1, float(timeout_seconds))
         self._retry = retry or RetryOptions()
-        self._user_agent = (
-            f"{user_agent} {SDK_USER_AGENT}" if user_agent else SDK_USER_AGENT
-        )
+        self._user_agent = f"{user_agent} {SDK_USER_AGENT}" if user_agent else SDK_USER_AGENT
         self._last_rate_limit: RateLimitMetadata | None = None
 
         self._callable_transport: AsyncTransportCallable | None = None
@@ -413,9 +408,7 @@ class AsyncHttpTransport:
     ) -> RawHttpResponse:
         if self._callable_transport is not None:
             return await asyncio.wait_for(
-                self._callable_transport(
-                    method, url, headers, body_bytes, timeout_seconds
-                ),
+                self._callable_transport(method, url, headers, body_bytes, timeout_seconds),
                 timeout=timeout_seconds,
             )
 

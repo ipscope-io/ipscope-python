@@ -5,11 +5,13 @@ from __future__ import annotations
 import asyncio
 import json
 import unittest
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 import httpx
 
 from ipscope import (
+    MAX_RESPONSE_BYTES,
     AsyncIpScopeClient,
     CacheOptions,
     FeedbackSubmissionInput,
@@ -19,7 +21,6 @@ from ipscope import (
     IpScopeRateLimitError,
     IpScopeTimeoutError,
     IpScopeValidationError,
-    MAX_RESPONSE_BYTES,
     RawHttpResponse,
     RetryOptions,
     validate_and_deduplicate_batch_ips,
@@ -130,9 +131,7 @@ class TestValidationAndScope(unittest.TestCase):
             validate_cidr_prefix("2001:db8::/129")
 
     def test_validate_and_deduplicate_batch_ips(self) -> None:
-        ordered, unique = validate_and_deduplicate_batch_ips(
-            ["8.8.8.8", "1.1.1.1", "8.8.8.8"]
-        )
+        ordered, unique = validate_and_deduplicate_batch_ips(["8.8.8.8", "1.1.1.1", "8.8.8.8"])
         self.assertEqual(ordered, ("8.8.8.8", "1.1.1.1", "8.8.8.8"))
         self.assertEqual(unique, ("8.8.8.8", "1.1.1.1"))
 
@@ -195,9 +194,7 @@ class TestSyncIpScopeClient(unittest.TestCase):
         self.assertEqual(first.network.organization, "Google LLC")
         self.assertIs(first, second)
         self.assertEqual(len(calls), 1)
-        self.assertEqual(
-            calls[0][2].get("x-api-key"), "ips_live_valid_key_12345"
-        )
+        self.assertEqual(calls[0][2].get("x-api-key"), "ips_live_valid_key_12345")
 
         # Slotted frozen dataclass check (zero __dict__ overhead)
         self.assertFalse(hasattr(first, "__dict__"))
@@ -246,9 +243,7 @@ class TestSyncIpScopeClient(unittest.TestCase):
         client.lookup_ip("8.8.8.8")
 
         # Batch lookup with cached 8.8.8.8 and duplicate 1.1.1.1
-        batch = client.lookup_batch(
-            ["8.8.8.8", "1.1.1.1", "8.8.8.8", "1.1.1.1", "9.9.9.9"]
-        )
+        batch = client.lookup_batch(["8.8.8.8", "1.1.1.1", "8.8.8.8", "1.1.1.1", "9.9.9.9"])
         self.assertEqual(len(sent_bodies), 1)
         # Only uncached unique IPs should be sent over the wire
         self.assertEqual(sent_bodies[0]["ips"], ["1.1.1.1", "9.9.9.9"])
@@ -454,9 +449,7 @@ class TestSyncIpScopeClient(unittest.TestCase):
 
         client = IpScopeClient(
             api_key="ips_live_valid_key_12345",
-            retry=RetryOptions(
-                max_retries=3, base_delay_seconds=0.005, max_delay_seconds=0.02
-            ),
+            retry=RetryOptions(max_retries=3, base_delay_seconds=0.005, max_delay_seconds=0.02),
             transport=mock_transport,
         )
         record = client.lookup_ip("1.1.1.1")
@@ -583,9 +576,7 @@ class TestAsyncIpScopeClient(unittest.IsolatedAsyncioTestCase):
             transport=mock_async_transport,
         )
         # Launch 25 concurrent lookups for the same IP; singleflight must coalesce into 1 HTTP call
-        results = await asyncio.gather(
-            *(client.lookup_ip("8.8.8.8") for _ in range(25))
-        )
+        results = await asyncio.gather(*(client.lookup_ip("8.8.8.8") for _ in range(25)))
         self.assertEqual(network_calls, 1)
         self.assertEqual(len(results), 25)
         for item in results:
@@ -629,9 +620,7 @@ class TestAsyncIpScopeClient(unittest.IsolatedAsyncioTestCase):
             cache=CacheOptions(enabled=False),
             transport=mock_async_transport,
         )
-        ips = [f"192.0.2.{i}" for i in range(1, 240)] + [
-            f"198.51.100.{i}" for i in range(1, 240)
-        ]
+        ips = [f"192.0.2.{i}" for i in range(1, 240)] + [f"198.51.100.{i}" for i in range(1, 240)]
         batch = await client.lookup_batch_chunked(ips, concurrency=2)
         self.assertEqual(batch.count, len(ips))
         self.assertLessEqual(max_seen_in_flight, 2)
@@ -657,9 +646,7 @@ class TestAsyncIpScopeClient(unittest.IsolatedAsyncioTestCase):
 
         client = AsyncIpScopeClient(
             api_key="ips_live_valid_key_12345",
-            retry=RetryOptions(
-                max_retries=1, base_delay_seconds=0.005, max_delay_seconds=0.01
-            ),
+            retry=RetryOptions(max_retries=1, base_delay_seconds=0.005, max_delay_seconds=0.01),
             transport=mock_429,
         )
         with self.assertRaises(IpScopeRateLimitError) as ctx:

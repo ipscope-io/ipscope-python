@@ -7,11 +7,12 @@ guaranteed `finally` cleanup on in-flight async singleflight tasks.
 from __future__ import annotations
 
 import asyncio
-from collections import OrderedDict
-from dataclasses import dataclass
 import threading
 import time
-from typing import Awaitable, Callable, Generic, TypeVar
+from collections import OrderedDict
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from typing import Generic, TypeVar
 
 from .types import CacheOptions, CacheStats
 

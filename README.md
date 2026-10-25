@@ -24,7 +24,19 @@ Official, strictly typed server-side **Python SDK** for the **IPScope IP Intelli
 ## Installation
 
 ```bash
+uv add ipscope
+# or
 pip install ipscope
+```
+
+## Development (`uv` + `ruff`)
+
+```bash
+cd sdks/python
+uv sync
+uv run ruff check --fix .
+uv run ruff format .
+uv run pytest -v
 ```
 
 ---

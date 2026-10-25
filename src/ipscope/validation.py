@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import ipaddress
-from typing import Sequence
+from collections.abc import Sequence
 
 from .errors import IpScopeValidationError
 from .types import IpFamily
@@ -17,9 +17,7 @@ def validate_api_key(raw_api_key: object) -> str:
     if not trimmed:
         raise IpScopeValidationError("API key cannot be empty", "api_key")
     if any(ch in trimmed for ch in ("\r", "\n", "\x00")):
-        raise IpScopeValidationError(
-            "API key contains invalid control characters", "api_key"
-        )
+        raise IpScopeValidationError("API key contains invalid control characters", "api_key")
     return trimmed
 
 
@@ -29,15 +27,11 @@ def validate_ip_address(raw_ip: object) -> tuple[str, IpFamily]:
         raise IpScopeValidationError("IP address must be a string", "ip")
     trimmed = raw_ip.strip()
     if not trimmed or "%" in trimmed:
-        raise IpScopeValidationError(
-            f'Invalid IPv4 or IPv6 address: "{trimmed}"', "ip"
-        )
+        raise IpScopeValidationError(f'Invalid IPv4 or IPv6 address: "{trimmed}"', "ip")
     try:
         addr = ipaddress.ip_address(trimmed)
     except ValueError as exc:
-        raise IpScopeValidationError(
-            f'Invalid IPv4 or IPv6 address: "{trimmed}"', "ip"
-        ) from exc
+        raise IpScopeValidationError(f'Invalid IPv4 or IPv6 address: "{trimmed}"', "ip") from exc
 
     family: IpFamily = 6 if addr.version == 6 else 4
     return str(addr).lower(), family
@@ -66,16 +60,14 @@ def validate_cidr_prefix(raw_cidr: object) -> tuple[str, int, IpFamily, str]:
     max_bits = 32 if family == 4 else 128
     if prefix_len < 0 or prefix_len > max_bits:
         raise IpScopeValidationError(
-            f"Prefix length {prefix_len} out of range [0..{max_bits}] for IPv{family} CIDR \"{trimmed}\"",
+            f'Prefix length {prefix_len} out of range [0..{max_bits}] for IPv{family} CIDR "{trimmed}"',
             "cidr",
         )
 
     try:
         net = ipaddress.ip_network(f"{ip_str}/{prefix_len}", strict=False)
     except ValueError as exc:
-        raise IpScopeValidationError(
-            f'Invalid CIDR prefix: "{trimmed}"', "cidr"
-        ) from exc
+        raise IpScopeValidationError(f'Invalid CIDR prefix: "{trimmed}"', "cidr") from exc
 
     net_addr = str(net.network_address).lower()
     return net_addr, net.prefixlen, family, f"{net_addr}/{net.prefixlen}"
@@ -87,13 +79,9 @@ def validate_and_deduplicate_batch_ips(
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Validates a sequence of IPs (`1..max_batch_size`) and returns `(ordered_normalized_ips, unique_ips)`."""
     if isinstance(raw_ips, (str, bytes)) or not isinstance(raw_ips, Sequence):
-        raise IpScopeValidationError(
-            "Batch IPs must be a sequence of IPv4/IPv6 strings", "ips"
-        )
+        raise IpScopeValidationError("Batch IPs must be a sequence of IPv4/IPv6 strings", "ips")
     if len(raw_ips) == 0:
-        raise IpScopeValidationError(
-            "Batch IPs sequence must contain at least 1 IP address", "ips"
-        )
+        raise IpScopeValidationError("Batch IPs sequence must contain at least 1 IP address", "ips")
     if len(raw_ips) > max_batch_size:
         raise IpScopeValidationError(
             f"Batch IPs length ({len(raw_ips)}) exceeds maximum single-request batch size ({max_batch_size}). Use lookup_batch_chunked() or lookup_batch_stream() for larger lists.",

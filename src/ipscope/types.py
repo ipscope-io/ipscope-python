@@ -8,8 +8,9 @@ surface area.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Generic, Literal, Mapping, Sequence, TypeVar
+from typing import Any, Generic, Literal, TypeVar
 
 IpFamily = Literal[4, 6]
 
@@ -390,23 +391,13 @@ def parse_network_lookup_response(raw: Mapping[str, Any]) -> NetworkPrefixLookup
             location_type=rec_raw.get("locationType") or rec_raw.get("location_type"),
             is_vpn=rec_raw.get("isVpn") if "isVpn" in rec_raw else rec_raw.get("is_vpn"),
             is_hosting=(
-                rec_raw.get("isHosting")
-                if "isHosting" in rec_raw
-                else rec_raw.get("is_hosting")
+                rec_raw.get("isHosting") if "isHosting" in rec_raw else rec_raw.get("is_hosting")
             ),
             is_tor_exit=(
-                rec_raw.get("isTorExit")
-                if "isTorExit" in rec_raw
-                else rec_raw.get("is_tor_exit")
+                rec_raw.get("isTorExit") if "isTorExit" in rec_raw else rec_raw.get("is_tor_exit")
             ),
-            is_proxy=(
-                rec_raw.get("isProxy")
-                if "isProxy" in rec_raw
-                else rec_raw.get("is_proxy")
-            ),
-            anonymizer_type=(
-                rec_raw.get("anonymizerType") or rec_raw.get("anonymizer_type")
-            ),
+            is_proxy=(rec_raw.get("isProxy") if "isProxy" in rec_raw else rec_raw.get("is_proxy")),
+            anonymizer_type=(rec_raw.get("anonymizerType") or rec_raw.get("anonymizer_type")),
             raw=dict(rec_raw),
         )
 

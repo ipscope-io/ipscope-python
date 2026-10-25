@@ -16,8 +16,8 @@ methods):
 from __future__ import annotations
 
 import asyncio
-from typing import AsyncIterable, AsyncIterator, Iterable, Iterator, Mapping, Sequence
 import urllib.parse
+from collections.abc import AsyncIterable, AsyncIterator, Iterable, Iterator, Mapping, Sequence
 
 import httpx
 
@@ -86,13 +86,11 @@ class IpScopeClient:
         )
         cache_opts = cache or CacheOptions()
         self._ip_cache: SyncLruTtlCache[IpLookupResponse] = SyncLruTtlCache(cache_opts)
-        self._network_cache: SyncLruTtlCache[NetworkPrefixLookupResponse] = (
-            SyncLruTtlCache(
-                CacheOptions(
-                    enabled=cache_opts.enabled,
-                    max_entries=min(128, cache_opts.max_entries),
-                    ttl_seconds=cache_opts.ttl_seconds,
-                )
+        self._network_cache: SyncLruTtlCache[NetworkPrefixLookupResponse] = SyncLruTtlCache(
+            CacheOptions(
+                enabled=cache_opts.enabled,
+                max_entries=min(128, cache_opts.max_entries),
+                ttl_seconds=cache_opts.ttl_seconds,
             )
         )
 
@@ -181,9 +179,7 @@ class IpScopeClient:
         headers: Mapping[str, str] | None = None,
     ) -> BatchLookupResponse:
         """Performs a batch lookup for 1..100 IPs (`POST /v1/ip/batch`), deduplicating and reusing warm cache entries."""
-        ordered_ips, unique_ips = validate_and_deduplicate_batch_ips(
-            raw_ips, MAX_SINGLE_BATCH_SIZE
-        )
+        ordered_ips, unique_ips = validate_and_deduplicate_batch_ips(raw_ips, MAX_SINGLE_BATCH_SIZE)
 
         resolved_by_ip: dict[str, IpLookupResponse] = {}
         missing_ips: list[str] = []
@@ -239,7 +235,11 @@ class IpScopeClient:
         headers: Mapping[str, str] | None = None,
     ) -> BatchLookupResponse:
         """Performs a batch lookup for >100 IPs by deduplicating and splitting into chunks of up to 100 IPs."""
-        if isinstance(raw_ips, (str, bytes)) or not isinstance(raw_ips, Sequence) or len(raw_ips) == 0:
+        if (
+            isinstance(raw_ips, (str, bytes))
+            or not isinstance(raw_ips, Sequence)
+            or len(raw_ips) == 0
+        ):
             raise IpScopeValidationError(
                 "Batch IPs sequence must contain at least 1 IP address", "ips"
             )
@@ -443,16 +443,12 @@ class AsyncIpScopeClient:
             transport=transport,
         )
         cache_opts = cache or CacheOptions()
-        self._ip_cache: AsyncLruTtlCache[IpLookupResponse] = AsyncLruTtlCache(
-            cache_opts
-        )
-        self._network_cache: AsyncLruTtlCache[NetworkPrefixLookupResponse] = (
-            AsyncLruTtlCache(
-                CacheOptions(
-                    enabled=cache_opts.enabled,
-                    max_entries=min(128, cache_opts.max_entries),
-                    ttl_seconds=cache_opts.ttl_seconds,
-                )
+        self._ip_cache: AsyncLruTtlCache[IpLookupResponse] = AsyncLruTtlCache(cache_opts)
+        self._network_cache: AsyncLruTtlCache[NetworkPrefixLookupResponse] = AsyncLruTtlCache(
+            CacheOptions(
+                enabled=cache_opts.enabled,
+                max_entries=min(128, cache_opts.max_entries),
+                ttl_seconds=cache_opts.ttl_seconds,
             )
         )
 
@@ -512,9 +508,7 @@ class AsyncIpScopeClient:
                 self._ip_cache.set(canonical_lower, parsed)
             return parsed
 
-        val, from_cache = await self._ip_cache.get_or_compute(
-            ip_str, bypass_cache, _produce
-        )
+        val, from_cache = await self._ip_cache.get_or_compute(ip_str, bypass_cache, _produce)
         return IpScopeResultWithMeta(
             data=val,
             status=last_status,
@@ -546,9 +540,7 @@ class AsyncIpScopeClient:
         headers: Mapping[str, str] | None = None,
     ) -> BatchLookupResponse:
         """Performs a batch lookup for 1..100 IPs (`POST /v1/ip/batch`), deduplicating and reusing warm cache entries."""
-        ordered_ips, unique_ips = validate_and_deduplicate_batch_ips(
-            raw_ips, MAX_SINGLE_BATCH_SIZE
-        )
+        ordered_ips, unique_ips = validate_and_deduplicate_batch_ips(raw_ips, MAX_SINGLE_BATCH_SIZE)
 
         resolved_by_ip: dict[str, IpLookupResponse] = {}
         missing_ips: list[str] = []
@@ -605,7 +597,11 @@ class AsyncIpScopeClient:
         headers: Mapping[str, str] | None = None,
     ) -> BatchLookupResponse:
         """Performs a batch lookup for >100 IPs with bounded async concurrency (`default: 4`)."""
-        if isinstance(raw_ips, (str, bytes)) or not isinstance(raw_ips, Sequence) or len(raw_ips) == 0:
+        if (
+            isinstance(raw_ips, (str, bytes))
+            or not isinstance(raw_ips, Sequence)
+            or len(raw_ips) == 0
+        ):
             raise IpScopeValidationError(
                 "Batch IPs sequence must contain at least 1 IP address", "ips"
             )
@@ -723,9 +719,7 @@ class AsyncIpScopeClient:
             )
             return parse_network_lookup_response(raw_data)
 
-        val, _ = await self._network_cache.get_or_compute(
-            normalized_cidr, bypass_cache, _produce
-        )
+        val, _ = await self._network_cache.get_or_compute(normalized_cidr, bypass_cache, _produce)
         return val
 
     async def get_datasets_metadata(
