@@ -7,6 +7,8 @@ import json
 import unittest
 from typing import Any, Mapping
 
+import httpx
+
 from ipscope import (
     AsyncIpScopeClient,
     CacheOptions,
@@ -529,6 +531,32 @@ class TestSyncIpScopeClient(unittest.TestCase):
             client.lookup_ip(f"10.0.0.{i}")
         self.assertLessEqual(client.get_cache_stats().size, 3)
 
+    def test_native_httpx_mock_transport_streaming_and_pool(self) -> None:
+        requests_seen: list[httpx.Request] = []
+
+        def handle_request(request: httpx.Request) -> httpx.Response:
+            requests_seen.append(request)
+            if request.url.path == "/v1/ip/8.8.8.8":
+                return httpx.Response(
+                    status_code=200,
+                    headers=DEFAULT_RATE_LIMIT_HEADERS,
+                    json=make_mock_ip_record("8.8.8.8"),
+                )
+            return httpx.Response(status_code=404, json={"message": "Not found"})
+
+        client = IpScopeClient(
+            api_key="ips_live_valid_key_12345",
+            transport=httpx.MockTransport(handle_request),
+        )
+        res = client.lookup_ip("8.8.8.8")
+        self.assertEqual(res.ip, "8.8.8.8")
+        self.assertEqual(len(requests_seen), 1)
+        self.assertEqual(
+            requests_seen[0].headers.get("x-api-key"),
+            "ips_live_valid_key_12345",
+        )
+        client.close()
+
 
 class TestAsyncIpScopeClient(unittest.IsolatedAsyncioTestCase):
     async def test_async_singleflight_coalescing_and_cache(self) -> None:
@@ -655,6 +683,26 @@ class TestAsyncIpScopeClient(unittest.IsolatedAsyncioTestCase):
         )
         with self.assertRaises(IpScopeTimeoutError):
             await timeout_client.lookup_ip("1.1.1.1")
+
+    async def test_native_httpx_async_mock_transport(self) -> None:
+        requests_seen: list[httpx.Request] = []
+
+        async def handle_async_request(request: httpx.Request) -> httpx.Response:
+            requests_seen.append(request)
+            return httpx.Response(
+                status_code=200,
+                headers=DEFAULT_RATE_LIMIT_HEADERS,
+                json=make_mock_ip_record("1.1.1.1"),
+            )
+
+        client = AsyncIpScopeClient(
+            api_key="ips_live_valid_key_12345",
+            transport=httpx.MockTransport(handle_async_request),
+        )
+        res = await client.lookup_ip("1.1.1.1")
+        self.assertEqual(res.ip, "1.1.1.1")
+        self.assertEqual(len(requests_seen), 1)
+        await client.close()
 
 
 if __name__ == "__main__":

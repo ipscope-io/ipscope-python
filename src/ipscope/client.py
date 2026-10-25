@@ -19,6 +19,8 @@ import asyncio
 from typing import AsyncIterable, AsyncIterator, Iterable, Iterator, Mapping, Sequence
 import urllib.parse
 
+import httpx
+
 from .cache import AsyncLruTtlCache, SyncLruTtlCache
 from .errors import IpScopeValidationError
 from .transport import (
@@ -59,7 +61,7 @@ MAX_SINGLE_BATCH_SIZE = 100
 
 
 class IpScopeClient:
-    """Official Synchronous IPScope Server-Side Python Client."""
+    """Official Synchronous IPScope Server-Side Python Client powered by `httpx.Client`."""
 
     def __init__(
         self,
@@ -70,7 +72,8 @@ class IpScopeClient:
         retry: RetryOptions | None = None,
         cache: CacheOptions | None = None,
         user_agent: str | None = None,
-        transport: SyncTransportCallable | None = None,
+        http_client: httpx.Client | None = None,
+        transport: httpx.BaseTransport | SyncTransportCallable | None = None,
     ) -> None:
         self._http = SyncHttpTransport(
             api_key=api_key,
@@ -78,6 +81,7 @@ class IpScopeClient:
             timeout_seconds=timeout_seconds,
             retry=retry,
             user_agent=user_agent,
+            http_client=http_client,
             transport=transport,
         )
         cache_opts = cache or CacheOptions()
@@ -91,6 +95,11 @@ class IpScopeClient:
                 )
             )
         )
+
+    def close(self) -> None:
+        """Closes the underlying `httpx.Client` connection pool and clears in-memory caches."""
+        self.clear_cache()
+        self._http.close()
 
     def lookup_ip(
         self,
@@ -410,7 +419,7 @@ class IpScopeClient:
 
 
 class AsyncIpScopeClient:
-    """Official Asynchronous IPScope Server-Side Python Client (`asyncio`)."""
+    """Official Asynchronous IPScope Server-Side Python Client powered by `httpx.AsyncClient`."""
 
     def __init__(
         self,
@@ -421,7 +430,8 @@ class AsyncIpScopeClient:
         retry: RetryOptions | None = None,
         cache: CacheOptions | None = None,
         user_agent: str | None = None,
-        transport: AsyncTransportCallable | None = None,
+        http_client: httpx.AsyncClient | None = None,
+        transport: httpx.AsyncBaseTransport | AsyncTransportCallable | None = None,
     ) -> None:
         self._http = AsyncHttpTransport(
             api_key=api_key,
@@ -429,6 +439,7 @@ class AsyncIpScopeClient:
             timeout_seconds=timeout_seconds,
             retry=retry,
             user_agent=user_agent,
+            http_client=http_client,
             transport=transport,
         )
         cache_opts = cache or CacheOptions()
@@ -444,6 +455,11 @@ class AsyncIpScopeClient:
                 )
             )
         )
+
+    async def close(self) -> None:
+        """Closes the underlying `httpx.AsyncClient` connection pool and clears in-memory caches."""
+        self.clear_cache()
+        await self._http.close()
 
     async def lookup_ip(
         self,

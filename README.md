@@ -1,6 +1,6 @@
 # `ipscope` — Official IPScope Server-Side Python SDK
 
-Official zero-dependency, strictly typed server-side **Python SDK** for the **IPScope IP Intelligence Platform**, supporting both **Synchronous (`IpScopeClient`)** and **Asynchronous (`AsyncIpScopeClient`)** execution.
+Official, strictly typed server-side **Python SDK** for the **IPScope IP Intelligence Platform**, powered by **`httpx`** and supporting both **Synchronous (`IpScopeClient`)** and **Asynchronous (`AsyncIpScopeClient`)** execution.
 
 > **Scope Notice:** This SDK is intentionally scoped strictly to **IP intelligence, network prefix, dataset metadata, feedback, and health operations**. It contains **zero account, billing, wallet, or key-management operations**, making it safe to deploy in production backend microservices, workers, and API gateways.
 
@@ -8,16 +8,16 @@ Official zero-dependency, strictly typed server-side **Python SDK** for the **IP
 
 ## Features
 
-- **Both Sync & Async Clients**:
-  - `IpScopeClient`: Thread-safe synchronous client (`client = IpScopeClient(api_key="...")`).
-  - `AsyncIpScopeClient`: Coroutine-safe asynchronous client (`client = AsyncIpScopeClient(api_key="...")`) with **singleflight request coalescing** (`asyncio.Task` deduplication) and bounded concurrency (`asyncio.Semaphore`).
+- **Both Sync & Async Clients Powered by `httpx`**:
+  - `IpScopeClient`: Thread-safe synchronous client backed by persistent `httpx.Client` connection pooling (`client = IpScopeClient(api_key="...")`).
+  - `AsyncIpScopeClient`: Coroutine-safe asynchronous client backed by `httpx.AsyncClient` (`client = AsyncIpScopeClient(api_key="...")`) with **singleflight request coalescing** (`asyncio.Task` deduplication) and bounded concurrency (`asyncio.Semaphore`).
 - **100% Type-Safe (PEP 561 `py.typed`)**: Uses `@dataclass(frozen=True, slots=True)` models for all responses (`IpLookupResponse`, `GeoResponseBlock`, `NetworkResponseBlock`, `SecurityResponseBlock`, `ConnectionResponseBlock`, `SecurityExtensionsResponseBlock`, `BatchLookupResponse`, `NetworkPrefixLookupResponse`, `DatasetsMetadataResponse`, `FeedbackSubmissionResponse`, `ServiceStatusResponse`).
 - **Low-RAM & Zero Memory Leaks**:
   - Slotted frozen dataclasses (`slots=True`) eliminate per-instance `__dict__` overhead (~55% lower RAM per record).
   - Bounded `OrderedDict` LRU + TTL cache (`max_entries=512` default, `< 400 KB` worst-case footprint).
-  - Hard `2 MiB` response body ceiling (`MAX_RESPONSE_BYTES`) prevents OOM on malformed upstream payloads.
+  - Hard `2 MiB` streaming response ceiling (`MAX_RESPONSE_BYTES`) via `httpx` streaming prevents OOM on malformed upstream payloads.
+  - Bounded `httpx.Limits(max_connections=20, max_keepalive_connections=10, keepalive_expiry=30.0)`.
   - `lookup_batch_stream(...)` generator / async generator yields batch chunks incrementally without holding large arrays in memory.
-- **Zero External Runtime Dependencies**: Built entirely on Python 3.10+ standard library (`urllib`, `asyncio`, `ipaddress`, `dataclasses`), with optional pluggable `transport` hooks for custom HTTP pools (`httpx`, `aiohttp`, `urllib3`).
 
 ---
 
