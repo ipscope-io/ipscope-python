@@ -180,29 +180,29 @@ class TestSyncIpScopeClient(unittest.TestCase):
                 body_bytes=payload,
             )
 
-        with IpScopeClient(
+        client = IpScopeClient(
             api_key="ips_live_valid_key_12345",
             transport=mock_transport,
-        ) as client:
-            first = client.lookup_ip("8.8.8.8")
-            second = client.lookup_ip("8.8.8.8")
+        )
+        first = client.lookup_ip("8.8.8.8")
+        second = client.lookup_ip("8.8.8.8")
 
-            self.assertEqual(first.ip, "8.8.8.8")
-            self.assertEqual(first.geo.country_code, "US")
-            self.assertEqual(first.network.asn, 15169)
-            self.assertEqual(first.network.organization, "Google LLC")
-            self.assertIs(first, second)
-            self.assertEqual(len(calls), 1)
-            self.assertEqual(
-                calls[0][2].get("x-api-key"), "ips_live_valid_key_12345"
-            )
+        self.assertEqual(first.ip, "8.8.8.8")
+        self.assertEqual(first.geo.country_code, "US")
+        self.assertEqual(first.network.asn, 15169)
+        self.assertEqual(first.network.organization, "Google LLC")
+        self.assertIs(first, second)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(
+            calls[0][2].get("x-api-key"), "ips_live_valid_key_12345"
+        )
 
-            # Slotted frozen dataclass check (zero __dict__ overhead)
-            self.assertFalse(hasattr(first, "__dict__"))
-            self.assertEqual(client.get_cache_stats().size, 1)
-            self.assertEqual(client.get_cache_stats().hits, 1)
-            self.assertIsNotNone(client.get_last_rate_limit())
-            self.assertEqual(client.get_last_rate_limit().remaining, 998)  # type: ignore[union-attr]
+        # Slotted frozen dataclass check (zero __dict__ overhead)
+        self.assertFalse(hasattr(first, "__dict__"))
+        self.assertEqual(client.get_cache_stats().size, 1)
+        self.assertEqual(client.get_cache_stats().hits, 1)
+        self.assertIsNotNone(client.get_last_rate_limit())
+        self.assertEqual(client.get_last_rate_limit().remaining, 998)  # type: ignore[union-attr]
 
     def test_batch_lookup_deduplicates_and_reuses_cache(self) -> None:
         sent_bodies: list[dict[str, Any]] = []
@@ -236,25 +236,25 @@ class TestSyncIpScopeClient(unittest.TestCase):
                 ).encode("utf-8"),
             )
 
-        with IpScopeClient(
+        client = IpScopeClient(
             api_key="ips_live_valid_key_12345",
             transport=mock_transport,
-        ) as client:
-            # Prime cache with 8.8.8.8
-            client.lookup_ip("8.8.8.8")
+        )
+        # Prime cache with 8.8.8.8
+        client.lookup_ip("8.8.8.8")
 
-            # Batch lookup with cached 8.8.8.8 and duplicate 1.1.1.1
-            batch = client.lookup_batch(
-                ["8.8.8.8", "1.1.1.1", "8.8.8.8", "1.1.1.1", "9.9.9.9"]
-            )
-            self.assertEqual(len(sent_bodies), 1)
-            # Only uncached unique IPs should be sent over the wire
-            self.assertEqual(sent_bodies[0]["ips"], ["1.1.1.1", "9.9.9.9"])
-            self.assertEqual(batch.count, 5)
-            self.assertEqual(
-                [r.ip for r in batch.results],
-                ["8.8.8.8", "1.1.1.1", "8.8.8.8", "1.1.1.1", "9.9.9.9"],
-            )
+        # Batch lookup with cached 8.8.8.8 and duplicate 1.1.1.1
+        batch = client.lookup_batch(
+            ["8.8.8.8", "1.1.1.1", "8.8.8.8", "1.1.1.1", "9.9.9.9"]
+        )
+        self.assertEqual(len(sent_bodies), 1)
+        # Only uncached unique IPs should be sent over the wire
+        self.assertEqual(sent_bodies[0]["ips"], ["1.1.1.1", "9.9.9.9"])
+        self.assertEqual(batch.count, 5)
+        self.assertEqual(
+            [r.ip for r in batch.results],
+            ["8.8.8.8", "1.1.1.1", "8.8.8.8", "1.1.1.1", "9.9.9.9"],
+        )
 
     def test_lookup_batch_chunked_and_stream(self) -> None:
         batch_calls = 0
@@ -283,19 +283,19 @@ class TestSyncIpScopeClient(unittest.TestCase):
                 ).encode("utf-8"),
             )
 
-        with IpScopeClient(
+        client = IpScopeClient(
             api_key="ips_live_valid_key_12345",
             cache=CacheOptions(enabled=False),
             transport=mock_transport,
-        ) as client:
-            ips = [f"10.0.0.{i}" for i in range(1, 251)]  # 250 IPs -> 3 chunks of 100, 100, 50
-            chunks = list(client.lookup_batch_stream(ips))
-            self.assertEqual(len(chunks), 3)
-            self.assertEqual([c.count for c in chunks], [100, 100, 50])
-            self.assertEqual(batch_calls, 3)
+        )
+        ips = [f"10.0.0.{i}" for i in range(1, 251)]  # 250 IPs -> 3 chunks of 100, 100, 50
+        chunks = list(client.lookup_batch_stream(ips))
+        self.assertEqual(len(chunks), 3)
+        self.assertEqual([c.count for c in chunks], [100, 100, 50])
+        self.assertEqual(batch_calls, 3)
 
-            combined = client.lookup_batch_chunked(ips)
-            self.assertEqual(combined.count, 250)
+        combined = client.lookup_batch_chunked(ips)
+        self.assertEqual(combined.count, 250)
 
     def test_network_caller_datasets_feedback_and_status(self) -> None:
         def mock_transport(
@@ -390,35 +390,35 @@ class TestSyncIpScopeClient(unittest.TestCase):
                 )
             raise AssertionError(f"Unexpected URL: {url}")
 
-        with IpScopeClient(
+        client = IpScopeClient(
             api_key="ips_live_valid_key_12345",
             transport=mock_transport,
-        ) as client:
-            net = client.lookup_network("8.8.8.0/24")
-            self.assertEqual(net.queried_cidr, "8.8.8.0/24")
-            self.assertIsNotNone(net.record)
-            self.assertEqual(net.record.asn, 15169)  # type: ignore[union-attr]
+        )
+        net = client.lookup_network("8.8.8.0/24")
+        self.assertEqual(net.queried_cidr, "8.8.8.0/24")
+        self.assertIsNotNone(net.record)
+        self.assertEqual(net.record.asn, 15169)  # type: ignore[union-attr]
 
-            caller = client.lookup_caller_ip()
-            self.assertEqual(caller.ip, "203.0.113.42")
+        caller = client.lookup_caller_ip()
+        self.assertEqual(caller.ip, "203.0.113.42")
 
-            meta = client.get_datasets_metadata()
-            self.assertEqual(meta.active_version, "2026.10.25-001")
-            self.assertEqual(len(meta.snapshots), 1)
+        meta = client.get_datasets_metadata()
+        self.assertEqual(meta.active_version, "2026.10.25-001")
+        self.assertEqual(len(meta.snapshots), 1)
 
-            fb = client.submit_feedback(
-                FeedbackSubmissionInput(
-                    prefix_or_ip="8.8.8.8",
-                    role="network_operator",
-                    issue_type="wrong_country",
-                    requested_correction={"country_code": "US"},
-                )
+        fb = client.submit_feedback(
+            FeedbackSubmissionInput(
+                prefix_or_ip="8.8.8.8",
+                role="network_operator",
+                issue_type="wrong_country",
+                requested_correction={"country_code": "US"},
             )
-            self.assertEqual(fb.id, "fb_999")
+        )
+        self.assertEqual(fb.id, "fb_999")
 
-            status = client.get_status()
-            self.assertEqual(status.status, "ok")
-            self.assertEqual(status.current_version, "2026.10.25-001")
+        status = client.get_status()
+        self.assertEqual(status.status, "ok")
+        self.assertEqual(status.current_version, "2026.10.25-001")
 
     def test_retries_on_429_and_503_and_error_mapping(self) -> None:
         attempts = 0
@@ -450,16 +450,16 @@ class TestSyncIpScopeClient(unittest.TestCase):
                 body_bytes=json.dumps(make_mock_ip_record("1.1.1.1")).encode("utf-8"),
             )
 
-        with IpScopeClient(
+        client = IpScopeClient(
             api_key="ips_live_valid_key_12345",
             retry=RetryOptions(
                 max_retries=3, base_delay_seconds=0.005, max_delay_seconds=0.02
             ),
             transport=mock_transport,
-        ) as client:
-            record = client.lookup_ip("1.1.1.1")
-            self.assertEqual(record.ip, "1.1.1.1")
-            self.assertEqual(attempts, 3)
+        )
+        record = client.lookup_ip("1.1.1.1")
+        self.assertEqual(record.ip, "1.1.1.1")
+        self.assertEqual(attempts, 3)
 
     def test_auth_error_and_oversized_response_guard(self) -> None:
         def mock_auth_fail(
@@ -475,14 +475,14 @@ class TestSyncIpScopeClient(unittest.TestCase):
                 body_bytes=json.dumps({"message": "Invalid API Key"}).encode("utf-8"),
             )
 
-        with IpScopeClient(
+        client = IpScopeClient(
             api_key="ips_live_valid_key_12345",
             transport=mock_auth_fail,
-        ) as client:
-            with self.assertRaises(IpScopeAuthenticationError) as ctx:
-                client.lookup_ip("8.8.8.8")
-            self.assertEqual(ctx.exception.status, 401)
-            self.assertEqual(ctx.exception.code, "IPSCOPE_UNAUTHORIZED")
+        )
+        with self.assertRaises(IpScopeAuthenticationError) as ctx:
+            client.lookup_ip("8.8.8.8")
+        self.assertEqual(ctx.exception.status, 401)
+        self.assertEqual(ctx.exception.code, "IPSCOPE_UNAUTHORIZED")
 
         def mock_oversized(
             method: str,
@@ -497,13 +497,13 @@ class TestSyncIpScopeClient(unittest.TestCase):
                 body_bytes=b"x" * (MAX_RESPONSE_BYTES + 10),
             )
 
-        with IpScopeClient(
+        oversized_client = IpScopeClient(
             api_key="ips_live_valid_key_12345",
             transport=mock_oversized,
-        ) as client:
-            with self.assertRaises(IpScopeApiError) as ctx2:
-                client.lookup_ip("8.8.8.8")
-            self.assertEqual(ctx2.exception.code, "IPSCOPE_RESPONSE_TOO_LARGE")
+        )
+        with self.assertRaises(IpScopeApiError) as ctx2:
+            oversized_client.lookup_ip("8.8.8.8")
+        self.assertEqual(ctx2.exception.code, "IPSCOPE_RESPONSE_TOO_LARGE")
 
     def test_bounded_lru_cache_eviction(self) -> None:
         def mock_transport(
@@ -520,14 +520,14 @@ class TestSyncIpScopeClient(unittest.TestCase):
                 body_bytes=json.dumps(make_mock_ip_record(ip)).encode("utf-8"),
             )
 
-        with IpScopeClient(
+        client = IpScopeClient(
             api_key="ips_live_valid_key_12345",
             cache=CacheOptions(enabled=True, max_entries=3, ttl_seconds=60.0),
             transport=mock_transport,
-        ) as client:
-            for i in range(1, 15):
-                client.lookup_ip(f"10.0.0.{i}")
-            self.assertLessEqual(client.get_cache_stats().size, 3)
+        )
+        for i in range(1, 15):
+            client.lookup_ip(f"10.0.0.{i}")
+        self.assertLessEqual(client.get_cache_stats().size, 3)
 
 
 class TestAsyncIpScopeClient(unittest.IsolatedAsyncioTestCase):
@@ -550,20 +550,20 @@ class TestAsyncIpScopeClient(unittest.IsolatedAsyncioTestCase):
                 body_bytes=json.dumps(make_mock_ip_record("8.8.8.8")).encode("utf-8"),
             )
 
-        async with AsyncIpScopeClient(
+        client = AsyncIpScopeClient(
             api_key="ips_live_valid_key_12345",
             transport=mock_async_transport,
-        ) as client:
-            # Launch 25 concurrent lookups for the same IP; singleflight must coalesce into 1 HTTP call
-            results = await asyncio.gather(
-                *(client.lookup_ip("8.8.8.8") for _ in range(25))
-            )
-            self.assertEqual(network_calls, 1)
-            self.assertEqual(len(results), 25)
-            for item in results:
-                self.assertIs(item, results[0])
-            self.assertEqual(client.get_cache_stats().coalesced_in_flight_hits, 24)
-            self.assertEqual(client.get_cache_stats().size, 1)
+        )
+        # Launch 25 concurrent lookups for the same IP; singleflight must coalesce into 1 HTTP call
+        results = await asyncio.gather(
+            *(client.lookup_ip("8.8.8.8") for _ in range(25))
+        )
+        self.assertEqual(network_calls, 1)
+        self.assertEqual(len(results), 25)
+        for item in results:
+            self.assertIs(item, results[0])
+        self.assertEqual(client.get_cache_stats().coalesced_in_flight_hits, 24)
+        self.assertEqual(client.get_cache_stats().size, 1)
 
     async def test_async_batch_chunked_and_stream(self) -> None:
         in_flight = 0
@@ -596,22 +596,22 @@ class TestAsyncIpScopeClient(unittest.IsolatedAsyncioTestCase):
                 ).encode("utf-8"),
             )
 
-        async with AsyncIpScopeClient(
+        client = AsyncIpScopeClient(
             api_key="ips_live_valid_key_12345",
             cache=CacheOptions(enabled=False),
             transport=mock_async_transport,
-        ) as client:
-            ips = [f"192.0.2.{i}" for i in range(1, 240)] + [
-                f"198.51.100.{i}" for i in range(1, 240)
-            ]
-            batch = await client.lookup_batch_chunked(ips, concurrency=2)
-            self.assertEqual(batch.count, len(ips))
-            self.assertLessEqual(max_seen_in_flight, 2)
+        )
+        ips = [f"192.0.2.{i}" for i in range(1, 240)] + [
+            f"198.51.100.{i}" for i in range(1, 240)
+        ]
+        batch = await client.lookup_batch_chunked(ips, concurrency=2)
+        self.assertEqual(batch.count, len(ips))
+        self.assertLessEqual(max_seen_in_flight, 2)
 
-            streamed_count = 0
-            async for chunk in client.lookup_batch_stream(ips[:150]):
-                streamed_count += chunk.count
-            self.assertEqual(streamed_count, 150)
+        streamed_count = 0
+        async for chunk in client.lookup_batch_stream(ips[:150]):
+            streamed_count += chunk.count
+        self.assertEqual(streamed_count, 150)
 
     async def test_async_rate_limit_exhausted_and_timeout(self) -> None:
         async def mock_429(
@@ -627,17 +627,17 @@ class TestAsyncIpScopeClient(unittest.IsolatedAsyncioTestCase):
                 body_bytes=json.dumps({"message": "Rate limit exceeded"}).encode("utf-8"),
             )
 
-        async with AsyncIpScopeClient(
+        client = AsyncIpScopeClient(
             api_key="ips_live_valid_key_12345",
             retry=RetryOptions(
                 max_retries=1, base_delay_seconds=0.005, max_delay_seconds=0.01
             ),
             transport=mock_429,
-        ) as client:
-            with self.assertRaises(IpScopeRateLimitError) as ctx:
-                await client.lookup_ip("1.1.1.1")
-            self.assertEqual(ctx.exception.status, 429)
-            self.assertEqual(ctx.exception.retry_after_seconds, 1.0)
+        )
+        with self.assertRaises(IpScopeRateLimitError) as ctx:
+            await client.lookup_ip("1.1.1.1")
+        self.assertEqual(ctx.exception.status, 429)
+        self.assertEqual(ctx.exception.retry_after_seconds, 1.0)
 
         async def mock_timeout(
             method: str,
@@ -648,13 +648,13 @@ class TestAsyncIpScopeClient(unittest.IsolatedAsyncioTestCase):
         ) -> RawHttpResponse:
             raise TimeoutError("timed out")
 
-        async with AsyncIpScopeClient(
+        timeout_client = AsyncIpScopeClient(
             api_key="ips_live_valid_key_12345",
             retry=RetryOptions(max_retries=0),
             transport=mock_timeout,
-        ) as client:
-            with self.assertRaises(IpScopeTimeoutError):
-                await client.lookup_ip("1.1.1.1")
+        )
+        with self.assertRaises(IpScopeTimeoutError):
+            await timeout_client.lookup_ip("1.1.1.1")
 
 
 if __name__ == "__main__":

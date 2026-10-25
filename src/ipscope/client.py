@@ -92,16 +92,6 @@ class IpScopeClient:
             )
         )
 
-    def __enter__(self) -> IpScopeClient:
-        return self
-
-    def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
-        self.close()
-
-    def close(self) -> None:
-        """Clears in-memory caches on client shutdown."""
-        self.clear_cache()
-
     def lookup_ip(
         self,
         raw_ip: str,
@@ -454,18 +444,6 @@ class AsyncIpScopeClient:
                 )
             )
         )
-
-    async def __aenter__(self) -> AsyncIpScopeClient:
-        return self
-
-    async def __aexit__(
-        self, exc_type: object, exc_val: object, exc_tb: object
-    ) -> None:
-        await self.close()
-
-    async def close(self) -> None:
-        """Clears in-memory caches on async client shutdown."""
-        self.clear_cache()
 
     async def lookup_ip(
         self,
