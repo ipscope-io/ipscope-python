@@ -1,4 +1,4 @@
-# `ipscope` — Official IPScope Server-Side Python SDK
+# `ipscope` - Official IPScope Server-Side Python SDK
 
 Official, strictly typed server-side **Python SDK** for the **IPScope IP Intelligence Platform**, powered by **`httpx`** and supporting both **Synchronous (`IpScopeClient`)** and **Asynchronous (`AsyncIpScopeClient`)** execution.
 
