@@ -46,7 +46,7 @@ uv run pytest -v
 ```python
 from ipscope import IpScopeClient
 
-client = IpScopeClient(api_key="ips_live_your_api_key_here")
+client = IpScopeClient(api_key="<public>:<private>")
 
 # 1. Single IPv4 or IPv6 lookup (cached automatically in LRU cache)
 ip_info = client.lookup_ip("8.8.8.8")
@@ -76,7 +76,7 @@ print(prefix.queried_cidr, prefix.dataset_version, prefix.record)
 import asyncio
 from ipscope import AsyncIpScopeClient
 
-client = AsyncIpScopeClient(api_key="ips_live_your_api_key_here")
+client = AsyncIpScopeClient(api_key="<public>:<private>")
 
 
 async def main() -> None:
@@ -115,7 +115,7 @@ from ipscope import (
     IpScopeApiError,
 )
 
-client = IpScopeClient(api_key="ips_live_your_api_key_here")
+client = IpScopeClient(api_key="<public>:<private>")
 
 try:
     res = client.lookup_ip("8.8.8.8")
